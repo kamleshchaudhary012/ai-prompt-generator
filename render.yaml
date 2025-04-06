@@ -20,5 +20,6 @@ services:
 
 databases:
   - name: prompt-generator-db
+    plan: free
     databaseName: prompt_generator
     user: prompt_generator 
