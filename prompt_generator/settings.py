@@ -87,11 +87,17 @@ DATABASES = {
 
 # Use PostgreSQL in production
 if not DEBUG:
-    DATABASES['default'] = dj_database_url.config(
-        default=config('DATABASE_URL'),
-        conn_max_age=600,
-        conn_health_checks=True,
-    )
+    try:
+        DATABASES['default'] = dj_database_url.config(
+            default=config('DATABASE_URL', ''),
+            conn_max_age=600,
+            conn_health_checks=True,
+        )
+        print(f"Using PostgreSQL database connection")
+    except Exception as e:
+        print(f"Error configuring database: {str(e)}")
+        # Keep SQLite as fallback
+        print(f"Using SQLite database as fallback")
 
 
 # Password validation

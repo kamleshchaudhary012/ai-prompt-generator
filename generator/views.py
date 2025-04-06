@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from .models import Category, Keyword, PromptTemplate
 from django.db.models import Q, F, Value, FloatField
 from django.db.models.functions import Length, Greatest
@@ -7,10 +7,17 @@ from functools import reduce
 import random
 import json
 import re
+import traceback
+import sys
 
 def home(request):
-    categories = Category.objects.all()
-    return render(request, 'home.html', {'categories': categories})
+    try:
+        categories = Category.objects.all()
+        return render(request, 'home.html', {'categories': categories})
+    except Exception as e:
+        error_info = sys.exc_info()
+        error_message = f"Error: {str(e)}\n\n{''.join(traceback.format_exception(*error_info))}"
+        return HttpResponse(f"<pre>{error_message}</pre>", status=500)
 
 def get_trending_topics(request):
     """API endpoint to get trending topics across all categories or for a specific category"""
