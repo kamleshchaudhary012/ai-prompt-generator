@@ -17,34 +17,66 @@ from django.db.migrations.recorder import MigrationRecorder
 def home(request):
     try:
         # First try to access the categories
+        categories_exist = False
         try:
-            categories = Category.objects.all()
-            if not categories.exists():
-                # Create basic categories
-                category_names = ["ChatGPT", "Midjourney", "Blogging / SEO", "Coding", "Social Media"]
-                for name in category_names:
-                    Category.objects.create(name=name, slug=slugify(name))
-                categories = Category.objects.all()
+            # Check if the table exists
+            with connection.cursor() as cursor:
+                db_engine = connection.vendor
+                if db_engine == 'sqlite':
+                    # For SQLite
+                    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='generator_category';")
+                    table_exists = cursor.fetchone() is not None
+                else:
+                    # For PostgreSQL and others
+                    cursor.execute("""
+                    SELECT EXISTS (
+                        SELECT FROM information_schema.tables
+                        WHERE table_schema = 'public'
+                        AND table_name = 'generator_category'
+                    )
+                    """)
+                    table_exists = cursor.fetchone()[0]
+                
+                if not table_exists:
+                    # Table doesn't exist, create it
+                    categories_exist = False
+                else:
+                    # Check if there are records
+                    try:
+                        categories = Category.objects.all()
+                        categories_exist = categories.exists()
+                    except:
+                        categories_exist = False
+        except Exception:
+            categories_exist = False
             
-            return render(request, 'home.html', {'categories': categories})
-        except (OperationalError, ProgrammingError) as db_error:
-            # Database tables do not exist - run migrations and create tables manually
+        # If categories don't exist or the table doesn't exist, create them    
+        if not categories_exist:
+            # Try to manually create the tables
             try:
-                # Try to manually create the tables
                 with connection.cursor() as cursor:
+                    # Check database type - SQLite vs PostgreSQL
+                    db_engine = connection.vendor
+                    
+                    # Create appropriate SQL for the database engine
+                    if db_engine == 'sqlite':
+                        id_field = "id INTEGER PRIMARY KEY AUTOINCREMENT"
+                    else:  # postgresql or others
+                        id_field = "id SERIAL PRIMARY KEY"
+                    
                     # Create Category table
-                    cursor.execute('''
+                    cursor.execute(f'''
                     CREATE TABLE IF NOT EXISTS generator_category (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT, 
+                        {id_field}, 
                         name VARCHAR(100) NOT NULL, 
                         slug VARCHAR(50) NOT NULL UNIQUE
                     )
                     ''')
                     
                     # Create PromptTemplate table
-                    cursor.execute('''
+                    cursor.execute(f'''
                     CREATE TABLE IF NOT EXISTS generator_prompttemplate (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        {id_field},
                         name VARCHAR(200) NOT NULL,
                         template TEXT NOT NULL,
                         category_id INTEGER NOT NULL REFERENCES generator_category(id)
@@ -52,15 +84,38 @@ def home(request):
                     ''')
                     
                     # Create Keyword table
-                    cursor.execute('''
+                    cursor.execute(f'''
                     CREATE TABLE IF NOT EXISTS generator_keyword (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        {id_field},
                         text VARCHAR(100) NOT NULL,
                         popularity INTEGER NOT NULL DEFAULT 0,
                         related_keywords TEXT NOT NULL DEFAULT '',
                         category_id INTEGER NOT NULL REFERENCES generator_category(id)
                     )
                     ''')
+                    
+                    # Insert statement also needs to be adapted to the DB engine
+                    if db_engine == 'sqlite':
+                        insert_category_sql = "INSERT OR IGNORE INTO generator_category (name, slug) VALUES (?, ?)"
+                        insert_template_sql = "INSERT OR IGNORE INTO generator_prompttemplate (name, template, category_id) VALUES (?, ?, ?)"
+                        insert_keyword_sql = "INSERT OR IGNORE INTO generator_keyword (text, category_id, popularity, related_keywords) VALUES (?, ?, ?, ?)"
+                    else:
+                        # For PostgreSQL
+                        insert_category_sql = """
+                        INSERT INTO generator_category (name, slug)
+                        VALUES (%s, %s)
+                        ON CONFLICT (slug) DO NOTHING
+                        """
+                        insert_template_sql = """
+                        INSERT INTO generator_prompttemplate (name, template, category_id)
+                        VALUES (%s, %s, %s)
+                        ON CONFLICT DO NOTHING
+                        """
+                        insert_keyword_sql = """
+                        INSERT INTO generator_keyword (text, category_id, popularity, related_keywords)
+                        VALUES (%s, %s, %s, %s)
+                        ON CONFLICT DO NOTHING
+                        """
                     
                     # Insert some basic categories
                     categories_data = [
@@ -72,52 +127,93 @@ def home(request):
                     ]
                     
                     for name, slug in categories_data:
-                        cursor.execute(
-                            "INSERT INTO generator_category (name, slug) VALUES (?, ?)",
-                            (name, slug)
-                        )
-                
-                # Now try to render the template with hardcoded categories
-                hardcoded_categories = []
-                for name, slug in categories_data:
-                    hardcoded_categories.append({'name': name, 'slug': slug})
+                        try:
+                            cursor.execute(insert_category_sql, (name, slug))
+                        except Exception as e:
+                            pass  # Continue with other inserts
                     
-                return render(request, 'home.html', {'categories': hardcoded_categories})
+                    # Insert some basic templates
+                    templates_data = [
+                        ("Basic Template", "Write about {topic} in detail.", 1),
+                        ("Art Creation", "Create an image of {topic} with vibrant colors.", 2),
+                        ("Blog Post", "Write a blog post about {topic} with SEO optimization.", 3),
+                        ("Code Example", "Write a code example for {topic}.", 4),
+                        ("Social Post", "Create an engaging social media post about {topic}.", 5)
+                    ]
+                    
+                    for name, template, category_id in templates_data:
+                        try:
+                            cursor.execute(insert_template_sql, (name, template, category_id))
+                        except Exception as e:
+                            pass  # Continue with other inserts
+                    
+                    # Insert some basic keywords
+                    keywords_data = [
+                        ("AI assistant", 1, 10, "virtual assistant, chatbot"),
+                        ("Digital art", 2, 10, "digital painting, artwork"),
+                        ("Content marketing", 3, 10, "content strategy, marketing"),
+                        ("Python", 4, 10, "programming, coding"),
+                        ("Instagram", 5, 10, "social media, posts")
+                    ]
+                    
+                    for text, category_id, popularity, related in keywords_data:
+                        try:
+                            cursor.execute(insert_keyword_sql, (text, category_id, popularity, related))
+                        except Exception as e:
+                            pass  # Continue with other inserts
+            except Exception as db_error:
+                # For fallback, use our hardcoded data
+                pass
+
+        # Get categories for display
+        try:
+            categories = Category.objects.all()
+            if not categories.exists():
+                # Create basic categories using ORM
+                category_names = ["ChatGPT", "Midjourney", "Blogging / SEO", "Coding", "Social Media"]
+                for name in category_names:
+                    Category.objects.create(name=name, slug=slugify(name))
+                categories = Category.objects.all()
+            
+            return render(request, 'home.html', {'categories': categories})
+        except Exception as model_error:
+            # If we can't use the ORM, fallback to hardcoded categories
+            hardcoded_categories = []
+            default_categories = Category.get_default_categories()
+            for cat in default_categories:
+                hardcoded_categories.append({'name': cat['name'], 'slug': cat['slug']})
                 
-            except Exception as inner_error:
-                # If all else fails, render a simple template with no database
-                error_info = f"Database error: {str(db_error)}\nFailed to create tables: {str(inner_error)}"
-                emergency_html = f"""
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <title>AI Prompt Generator</title>
-                    <meta charset="UTF-8">
-                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-                </head>
-                <body class="bg-gray-100 min-h-screen">
-                    <div class="container mx-auto px-4 py-8">
-                        <h1 class="text-3xl font-bold text-center mb-8">AI Prompt Generator</h1>
-                        <div class="bg-white p-6 rounded-lg shadow-md">
-                            <h2 class="text-xl font-semibold mb-4">Welcome!</h2>
-                            <p class="mb-4">The application is currently initializing the database. Please try again in a few moments.</p>
-                            <div class="flex justify-center">
-                                <button onclick="location.reload()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
-                                    Refresh Page
-                                </button>
-                            </div>
-                        </div>
-                        {f'<div class="mt-8 p-4 bg-red-100 rounded text-sm"><pre>{error_info}</pre></div>' if request.GET.get('debug') else ''}
-                    </div>
-                </body>
-                </html>
-                """
-                return HttpResponse(emergency_html)
+            return render(request, 'home.html', {'categories': hardcoded_categories})
     except Exception as e:
-        error_info = sys.exc_info()
-        error_message = f"Error: {str(e)}\n\n{''.join(traceback.format_exception(*error_info))}"
-        return HttpResponse(f"<pre>{error_message}</pre>", status=500)
+        # Last resort: render emergency HTML
+        error_info = str(e)
+        emergency_html = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>AI Prompt Generator</title>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+        </head>
+        <body class="bg-gray-100 min-h-screen">
+            <div class="container mx-auto px-4 py-8">
+                <h1 class="text-3xl font-bold text-center mb-8">AI Prompt Generator</h1>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h2 class="text-xl font-semibold mb-4">Welcome!</h2>
+                    <p class="mb-4">The application is loading default templates. Please try again in a few moments.</p>
+                    <div class="flex justify-center">
+                        <button onclick="location.reload()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                            Refresh Page
+                        </button>
+                    </div>
+                </div>
+                {f'<div class="mt-8 p-4 bg-red-100 rounded text-sm"><pre>{error_info}</pre></div>' if request.GET.get('debug') else ''}
+            </div>
+        </body>
+        </html>
+        """
+        return HttpResponse(emergency_html)
 
 def get_trending_topics(request):
     """API endpoint to get trending topics across all categories or for a specific category"""

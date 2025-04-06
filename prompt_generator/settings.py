@@ -96,6 +96,10 @@ if db_url:
             conn_max_age=600,
             conn_health_checks=True,
         )
+        
+        # If using PostgreSQL, configure the schema for migrations
+        if DATABASES['default']['ENGINE'] == 'django.db.backends.postgresql':
+            DATABASES['default']['OPTIONS'] = {'options': '-c search_path=public'}
     except Exception as e:
         print(f"Error configuring database from URL: {str(e)}")
         print("Using SQLite database as fallback")
