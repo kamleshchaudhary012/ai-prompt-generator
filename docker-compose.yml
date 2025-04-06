@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    restart: always
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    env_file:
+      - .env
+    environment:
+      - PORT=8000
+      - DATABASE_URL=postgres://postgres:postgres@db:5432/postgres
+      - DEBUG=False
+      - ALLOWED_HOSTS=localhost,127.0.0.1
+    volumes:
+      - ./staticfiles:/app/staticfiles
+    command: >
+      bash -c "python manage.py migrate &&
+               python manage.py load_initial_data &&
+               gunicorn prompt_generator.wsgi:application --bind 0.0.0.0:8000"
+
+  db:
+    image: postgres:15
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=postgres
+    ports:
+      - "5432:5432"
+
+volumes:
+  postgres_data: 
