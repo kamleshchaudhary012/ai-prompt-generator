@@ -9,10 +9,19 @@ import json
 import re
 import traceback
 import sys
+from django.utils.text import slugify
 
 def home(request):
     try:
+        # Check if categories exist, if not create some
         categories = Category.objects.all()
+        if not categories.exists():
+            # Create basic categories
+            category_names = ["ChatGPT", "Midjourney", "Blogging / SEO", "Coding", "Social Media"]
+            for name in category_names:
+                Category.objects.create(name=name, slug=slugify(name))
+            categories = Category.objects.all()
+        
         return render(request, 'home.html', {'categories': categories})
     except Exception as e:
         error_info = sys.exc_info()

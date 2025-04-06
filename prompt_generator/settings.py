@@ -78,26 +78,27 @@ WSGI_APPLICATION = 'prompt_generator.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
+# Default to SQLite
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
     }
 }
 
-# Use PostgreSQL in production
-if not DEBUG:
+# Check for DATABASE_URL variable (PostgreSQL) if set
+db_url = config('DATABASE_URL', default=None)
+if db_url:
     try:
+        print(f"Using database from URL: {db_url[:10]}...")
         DATABASES['default'] = dj_database_url.config(
-            default=config('DATABASE_URL', ''),
+            default=db_url,
             conn_max_age=600,
             conn_health_checks=True,
         )
-        print(f"Using PostgreSQL database connection")
     except Exception as e:
-        print(f"Error configuring database: {str(e)}")
-        # Keep SQLite as fallback
-        print(f"Using SQLite database as fallback")
+        print(f"Error configuring database from URL: {str(e)}")
+        print("Using SQLite database as fallback")
 
 
 # Password validation
