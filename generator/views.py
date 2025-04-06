@@ -453,3 +453,83 @@ def generate_prompts(request):
             return JsonResponse({'error': str(e)}, status=500)
     
     return JsonResponse({'error': 'Only POST method is allowed'}, status=405)
+
+def generate_question_prompts(request):
+    """API endpoint to generate multiple question-based prompts for a given keyword"""
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            topic = data.get('topic')
+            
+            if not topic:
+                return JsonResponse({'error': 'Topic is required'}, status=400)
+            
+            # Create a set of question templates for the given topic
+            question_templates = [
+                {
+                    'name': 'What is',
+                    'generatedContent': f"What is {topic}? Provide a detailed explanation with examples."
+                },
+                {
+                    'name': 'Why important',
+                    'generatedContent': f"Why is {topic} important or significant? Explain its relevance and impact."
+                },
+                {
+                    'name': 'How to use',
+                    'generatedContent': f"How to use {topic} effectively? Provide practical steps and best practices."
+                },
+                {
+                    'name': 'Compare',
+                    'generatedContent': f"Compare {topic} with its alternatives. What are the advantages and disadvantages?"
+                },
+                {
+                    'name': 'History',
+                    'generatedContent': f"What is the history and evolution of {topic}? How has it developed over time?"
+                },
+                {
+                    'name': 'Future trends',
+                    'generatedContent': f"What are the future trends and developments in {topic}? How might it evolve?"
+                },
+                {
+                    'name': 'Common misconceptions',
+                    'generatedContent': f"What are common misconceptions about {topic}? Clarify these with accurate information."
+                },
+                {
+                    'name': 'For beginners',
+                    'generatedContent': f"Explain {topic} for complete beginners. Use simple language and analogies."
+                }
+            ]
+            
+            # Track keyword usage
+            try:
+                # Try to find a suitable category for this topic
+                keywords = Keyword.objects.filter(text__icontains=topic)
+                if keywords.exists():
+                    # Use the most popular matching category
+                    keyword = keywords.order_by('-popularity').first()
+                    category = keyword.category
+                else:
+                    # Default to first category if no match
+                    category = Category.objects.first()
+                
+                # Update keyword popularity
+                keyword, created = Keyword.objects.get_or_create(
+                    text=topic,
+                    category=category,
+                    defaults={'popularity': 1}
+                )
+                
+                if not created:
+                    keyword.popularity += 1
+                    keyword.save()
+            except:
+                # If database operations fail, continue without tracking
+                pass
+            
+            return JsonResponse({'prompts': question_templates})
+        except json.JSONDecodeError:
+            return JsonResponse({'error': 'Invalid JSON'}, status=400)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    
+    return JsonResponse({'error': 'Only POST method is allowed'}, status=405)

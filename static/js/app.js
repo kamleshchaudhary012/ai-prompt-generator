@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const categoryBtns = document.querySelectorAll('.category-btn');
     const suggestionsContainer = document.getElementById('suggestions');
     const trendingTopicsContainer = document.getElementById('trending-topics');
+    const quickQuestionsToggle = document.getElementById('quick-questions-toggle');
 
     // Mobile menu
     const mobileMenuBtn = document.querySelector('.md\\:hidden button');
@@ -239,17 +240,27 @@ document.addEventListener('DOMContentLoaded', () => {
         generateBtn.classList.add('loading');
         generateBtn.disabled = true;
 
+        // Check if we're in quick questions mode
+        const isQuickQuestionsMode = quickQuestionsToggle.checked;
+        
+        // Determine which API endpoint to use
+        const apiEndpoint = isQuickQuestionsMode 
+            ? '/api/generate-question-prompts/' 
+            : '/api/generate-prompts/';
+
+        // Prepare request data based on mode
+        const requestData = isQuickQuestionsMode 
+            ? { topic } 
+            : { topic, category: selectedCategory };
+
         // Make API request
-        fetch('/api/generate-prompts/', {
+        fetch(apiEndpoint, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRFToken': CSRF_TOKEN
             },
-            body: JSON.stringify({
-                topic: topic,
-                category: selectedCategory
-            })
+            body: JSON.stringify(requestData)
         })
         .then(response => response.json())
         .then(data => {
@@ -261,8 +272,8 @@ document.addEventListener('DOMContentLoaded', () => {
             // Store generated prompts
             generatedPrompts = data.prompts;
             
-            // Display prompts
-            displayPrompts();
+            // Display prompts (with a flag to indicate if these are question prompts)
+            displayPrompts(isQuickQuestionsMode);
 
             // Show results section
             resultsSection.classList.remove('hidden');
@@ -286,22 +297,22 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Display prompts in UI
-    function displayPrompts() {
+    function displayPrompts(isQuestionPrompts = false) {
         // Clear previous prompts
         promptsContainer.innerHTML = '';
 
         // Add each prompt with animation delay
         generatedPrompts.forEach((prompt, index) => {
             const promptCard = document.createElement('div');
-            promptCard.className = 'prompt-card bg-white rounded-xl shadow-md overflow-hidden fade-in';
+            promptCard.className = `prompt-card ${isQuestionPrompts ? 'question-prompt-card' : ''} bg-white rounded-xl shadow-md overflow-hidden fade-in`;
             promptCard.style.animationDelay = `${index * 150}ms`;
 
             promptCard.innerHTML = `
                 <div class="p-6">
                     <div class="flex justify-between items-start mb-4">
                         <h4 class="text-lg font-semibold text-gray-800">${prompt.name}</h4>
-                        <span class="px-3 py-1 bg-indigo-100 text-indigo-800 rounded-full text-sm font-medium">
-                            ${capitalizeFirstLetter(selectedCategory)}
+                        <span class="px-3 py-1 ${isQuestionPrompts ? 'bg-indigo-100 text-indigo-800' : 'bg-indigo-100 text-indigo-800'} rounded-full text-sm font-medium">
+                            ${isQuestionPrompts ? 'Question' : capitalizeFirstLetter(selectedCategory)}
                         </span>
                     </div>
                     <div class="bg-gray-50 rounded-lg p-4 mb-4">

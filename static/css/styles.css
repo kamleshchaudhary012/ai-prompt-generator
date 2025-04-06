@@ -164,4 +164,27 @@
     50% {
         opacity: 0.5;
     }
+}
+
+/* Toggle Switch */
+#quick-questions-toggle:checked + .block {
+    background-color: #4F46E5;
+}
+
+#quick-questions-toggle:checked ~ .dot {
+    transform: translateX(100%);
+}
+
+#quick-questions-toggle:focus + .block {
+    box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.3);
+}
+
+.dot {
+    transition: all 0.3s ease;
+    transform: translateX(0);
+}
+
+/* Quick Questions Mode */
+.question-prompt-card {
+    border-left: 4px solid #4F46E5;
 } 
