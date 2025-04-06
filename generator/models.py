@@ -16,7 +16,14 @@ class Category(models.Model):
             {"id": 2, "name": "Midjourney", "slug": "midjourney"},
             {"id": 3, "name": "Blogging / SEO", "slug": "blogging-seo"},
             {"id": 4, "name": "Coding", "slug": "coding"},
-            {"id": 5, "name": "Social Media", "slug": "social-media"}
+            {"id": 5, "name": "Social Media", "slug": "social-media"},
+            {"id": 6, "name": "Digital Marketing", "slug": "digital-marketing"},
+            {"id": 7, "name": "Business & Entrepreneurship", "slug": "business-entrepreneurship"},
+            {"id": 8, "name": "Academic Writing", "slug": "academic-writing"},
+            {"id": 9, "name": "Creative Writing", "slug": "creative-writing"},
+            {"id": 10, "name": "Video Production", "slug": "video-production"},
+            {"id": 11, "name": "E-commerce", "slug": "e-commerce"},
+            {"id": 12, "name": "Personal Development", "slug": "personal-development"}
         ]
     
     class Meta:
