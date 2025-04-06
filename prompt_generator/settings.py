@@ -28,7 +28,7 @@ SECRET_KEY = config('SECRET_KEY', default='django-insecure-94bptt@$cb&=wdiyg!7#m
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='127.0.0.1,localhost,.onrender.com', cast=Csv())
+ALLOWED_HOSTS = ['promptzy.in', 'www.promptzy.in', '216.24.57.136', '127.0.0.1', 'localhost', '.onrender.com']
 
 
 # Application definition
