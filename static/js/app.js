@@ -10,6 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const suggestionsContainer = document.getElementById('suggestions');
     const trendingTopicsContainer = document.getElementById('trending-topics');
     const quickQuestionsToggle = document.getElementById('quick-questions-toggle');
+    const recentSearchesContainer = document.getElementById('recent-searches');
 
     // Mobile menu
     const mobileMenuBtn = document.querySelector('.md\\:hidden button');
@@ -40,8 +41,12 @@ document.addEventListener('DOMContentLoaded', () => {
     let selectedCategory = categoryBtns.length > 0 ? categoryBtns[0].dataset.category : 'chatgpt';
     let generatedPrompts = [];
     let lastTopic = '';
+    let recentSearches = getRecentSearches();
     let typingTimer;
     const doneTypingInterval = 500; // ms
+
+    // Load recent searches on page load
+    displayRecentSearches();
 
     // Initialize category buttons
     categoryBtns.forEach(btn => {
@@ -232,6 +237,10 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        // Save the topic to recent searches
+        saveRecentSearch(topic, selectedCategory);
+        displayRecentSearches();
+
         // Save the topic
         lastTopic = topic;
 
@@ -318,9 +327,19 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="bg-gray-50 rounded-lg p-4 mb-4">
                         <p class="text-gray-700 whitespace-pre-line">${prompt.generatedContent}</p>
                     </div>
-                    <button class="copy-btn flex items-center gap-2 text-indigo-600 hover:text-indigo-800 font-medium transition" data-prompt="${encodeURIComponent(prompt.generatedContent)}">
-                        <i class="far fa-copy"></i> Copy to clipboard
-                    </button>
+                    <div class="flex items-center justify-between">
+                        <button class="copy-btn flex items-center gap-2 text-indigo-600 hover:text-indigo-800 font-medium transition" data-prompt="${encodeURIComponent(prompt.generatedContent)}">
+                            <i class="far fa-copy"></i> Copy
+                        </button>
+                        <div class="flex items-center gap-2">
+                            <button class="share-btn flex items-center gap-1 text-green-600 hover:text-green-800 font-medium transition text-sm" data-prompt="${encodeURIComponent(prompt.generatedContent)}" data-title="${encodeURIComponent(prompt.name)}">
+                                <i class="fas fa-share-alt"></i> Share
+                            </button>
+                            <button class="like-btn flex items-center gap-1 text-red-500 hover:text-red-700 font-medium transition text-sm">
+                                <i class="far fa-heart"></i> <span class="like-count">0</span>
+                            </button>
+                        </div>
+                    </div>
                 </div>
             `;
 
@@ -330,6 +349,16 @@ document.addEventListener('DOMContentLoaded', () => {
         // Add event listeners to copy buttons
         document.querySelectorAll('.copy-btn').forEach(btn => {
             btn.addEventListener('click', copyToClipboard);
+        });
+        
+        // Add event listeners to share buttons
+        document.querySelectorAll('.share-btn').forEach(btn => {
+            btn.addEventListener('click', sharePrompt);
+        });
+        
+        // Add event listeners to like buttons
+        document.querySelectorAll('.like-btn').forEach(btn => {
+            btn.addEventListener('click', likePrompt);
         });
     }
 
@@ -347,6 +376,103 @@ document.addEventListener('DOMContentLoaded', () => {
                 e.currentTarget.innerHTML = originalText;
             }, 2000);
         });
+    }
+
+    // Share a prompt
+    function sharePrompt(e) {
+        const promptText = decodeURIComponent(e.currentTarget.dataset.prompt);
+        const promptTitle = decodeURIComponent(e.currentTarget.dataset.title);
+        
+        // Create share options
+        const shareOptions = document.createElement('div');
+        shareOptions.className = 'absolute right-0 bg-white shadow-lg rounded-lg p-3 z-10 flex flex-col gap-2 share-options fade-in';
+        shareOptions.style.top = '100%';
+        shareOptions.style.marginTop = '8px';
+        
+        // Add share options
+        shareOptions.innerHTML = `
+            <button class="twitter-share flex items-center gap-2 text-blue-400 hover:text-blue-600 transition py-1 px-2 rounded hover:bg-gray-50">
+                <i class="fab fa-twitter"></i> Twitter
+            </button>
+            <button class="facebook-share flex items-center gap-2 text-blue-600 hover:text-blue-800 transition py-1 px-2 rounded hover:bg-gray-50">
+                <i class="fab fa-facebook"></i> Facebook
+            </button>
+            <button class="linkedin-share flex items-center gap-2 text-blue-700 hover:text-blue-900 transition py-1 px-2 rounded hover:bg-gray-50">
+                <i class="fab fa-linkedin"></i> LinkedIn
+            </button>
+            <button class="whatsapp-share flex items-center gap-2 text-green-500 hover:text-green-700 transition py-1 px-2 rounded hover:bg-gray-50">
+                <i class="fab fa-whatsapp"></i> WhatsApp
+            </button>
+            <div class="h-px bg-gray-200 my-1"></div>
+            <button class="cancel-share flex items-center gap-2 text-gray-500 hover:text-gray-700 transition py-1 px-2 rounded hover:bg-gray-50">
+                <i class="fas fa-times"></i> Cancel
+            </button>
+        `;
+        
+        // Position the share options
+        e.currentTarget.parentElement.style.position = 'relative';
+        e.currentTarget.parentElement.appendChild(shareOptions);
+        
+        // Handle share clicks
+        shareOptions.querySelector('.twitter-share').addEventListener('click', () => {
+            window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(`${promptTitle}: ${promptText}`)}%0A%0AGenerated by @promptgenius_ai`);
+            shareOptions.remove();
+        });
+        
+        shareOptions.querySelector('.facebook-share').addEventListener('click', () => {
+            window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href)}&quote=${encodeURIComponent(`${promptTitle}: ${promptText}`)}`);
+            shareOptions.remove();
+        });
+        
+        shareOptions.querySelector('.linkedin-share').addEventListener('click', () => {
+            window.open(`https://www.linkedin.com/shareArticle?mini=true&url=${encodeURIComponent(window.location.href)}&title=${encodeURIComponent(promptTitle)}&summary=${encodeURIComponent(promptText)}`);
+            shareOptions.remove();
+        });
+        
+        shareOptions.querySelector('.whatsapp-share').addEventListener('click', () => {
+            window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(`${promptTitle}: ${promptText}`)}%0A%0AGenerated by AI Prompt Generator`);
+            shareOptions.remove();
+        });
+        
+        shareOptions.querySelector('.cancel-share').addEventListener('click', () => {
+            shareOptions.remove();
+        });
+        
+        // Close share options when clicking outside
+        document.addEventListener('click', function closeShareOptions(event) {
+            if (!shareOptions.contains(event.target) && !e.currentTarget.contains(event.target)) {
+                shareOptions.remove();
+                document.removeEventListener('click', closeShareOptions);
+            }
+        });
+    }
+    
+    // Like a prompt
+    function likePrompt(e) {
+        const likeCount = e.currentTarget.querySelector('.like-count');
+        const currentLikes = parseInt(likeCount.textContent);
+        
+        // Toggle like status
+        if (e.currentTarget.classList.contains('liked')) {
+            e.currentTarget.classList.remove('liked');
+            e.currentTarget.querySelector('i').className = 'far fa-heart';
+            likeCount.textContent = currentLikes - 1;
+        } else {
+            e.currentTarget.classList.add('liked');
+            e.currentTarget.querySelector('i').className = 'fas fa-heart';
+            likeCount.textContent = currentLikes + 1;
+            
+            // Add heart animation
+            const heart = document.createElement('span');
+            heart.className = 'floating-heart';
+            heart.innerHTML = '❤️';
+            heart.style.left = `${Math.random() * 40 + 30}%`;
+            e.currentTarget.appendChild(heart);
+            
+            setTimeout(() => {
+                heart.remove();
+            }, 1000);
+        }
     }
 
     // Show error message
@@ -390,4 +516,125 @@ document.addEventListener('DOMContentLoaded', () => {
     refreshBtn.addEventListener('click', () => {
         generatePrompts(lastTopic);
     });
+
+    // Get recent searches from localStorage
+    function getRecentSearches() {
+        try {
+            const saved = localStorage.getItem('recentSearches');
+            return saved ? JSON.parse(saved) : [];
+        } catch (e) {
+            console.error('Error retrieving recent searches:', e);
+            return [];
+        }
+    }
+
+    // Save a search to localStorage
+    function saveRecentSearch(topic, category) {
+        try {
+            // Get current searches
+            let searches = getRecentSearches();
+            
+            // Check if this search already exists
+            const existingIndex = searches.findIndex(s => s.topic.toLowerCase() === topic.toLowerCase());
+            if (existingIndex >= 0) {
+                // Remove it so we can add it to the front
+                searches.splice(existingIndex, 1);
+            }
+            
+            // Add new search at the beginning
+            searches.unshift({ 
+                topic, 
+                category,
+                timestamp: new Date().toISOString()
+            });
+            
+            // Keep only the 10 most recent
+            searches = searches.slice(0, 10);
+            
+            // Save back to localStorage
+            localStorage.setItem('recentSearches', JSON.stringify(searches));
+            recentSearches = searches;
+        } catch (e) {
+            console.error('Error saving recent search:', e);
+        }
+    }
+
+    // Display recent searches in the UI
+    function displayRecentSearches() {
+        if (!recentSearches || recentSearches.length === 0) {
+            recentSearchesContainer.innerHTML = `
+                <div class="px-3 py-1 bg-gray-100 text-gray-500 text-sm rounded-md">
+                    No recent searches
+                </div>
+            `;
+            return;
+        }
+        
+        recentSearchesContainer.innerHTML = '';
+        
+        recentSearches.slice(0, 5).forEach((search, index) => {
+            const searchBtn = document.createElement('button');
+            searchBtn.className = 'px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-800 text-sm rounded-md flex items-center transition';
+            searchBtn.style.setProperty('--index', index);
+            
+            // Find the proper category for color
+            let categoryName = 'General';
+            let categorySlug = search.category || 'chatgpt';
+            
+            // Try to find the category button to get its text
+            const categoryBtn = document.querySelector(`[data-category="${categorySlug}"]`);
+            if (categoryBtn) {
+                categoryName = categoryBtn.textContent.trim();
+            }
+            
+            searchBtn.innerHTML = `
+                <i class="fas fa-history text-gray-400 mr-1"></i>
+                ${search.topic}
+            `;
+            
+            searchBtn.addEventListener('click', () => {
+                // Set the topic in the input
+                topicInput.value = search.topic;
+                
+                // Update the category if needed
+                if (categorySlug && categorySlug !== selectedCategory) {
+                    const categoryBtn = document.querySelector(`[data-category="${categorySlug}"]`);
+                    if (categoryBtn) {
+                        categoryBtn.click();
+                    }
+                }
+                
+                // Focus the input
+                topicInput.focus();
+            });
+            
+            recentSearchesContainer.appendChild(searchBtn);
+        });
+        
+        // Add a clear history button if there are searches
+        if (recentSearches.length > 0) {
+            const clearBtn = document.createElement('button');
+            clearBtn.className = 'px-2 py-1 bg-red-50 hover:bg-red-100 text-red-600 text-xs rounded-md flex items-center transition ml-auto';
+            clearBtn.innerHTML = `
+                <i class="fas fa-trash-alt mr-1"></i>
+                Clear
+            `;
+            clearBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                clearRecentSearches();
+            });
+            recentSearchesContainer.appendChild(clearBtn);
+        }
+    }
+
+    // Clear all recent searches
+    function clearRecentSearches() {
+        try {
+            localStorage.removeItem('recentSearches');
+            recentSearches = [];
+            displayRecentSearches();
+        } catch (e) {
+            console.error('Error clearing recent searches:', e);
+        }
+    }
 }); 

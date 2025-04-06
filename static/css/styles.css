@@ -48,6 +48,37 @@
     transform: translateY(-2px);
 }
 
+/* Generate button shine effect */
+#generate-btn {
+    position: relative;
+    overflow: hidden;
+}
+
+#generate-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -75%;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.6) 100%);
+    transform: skewX(-25deg);
+    transition: all 0.75s;
+}
+
+#generate-btn:hover::before {
+    animation: shine 1.5s infinite;
+}
+
+@keyframes shine {
+    0% {
+        left: -75%;
+    }
+    100% {
+        left: 125%;
+    }
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
     width: 8px;
@@ -84,6 +115,13 @@
     animation: fadeIn 0.4s ease forwards;
 }
 
+/* Recent searches animations */
+#recent-searches button {
+    animation: fadeIn 0.5s ease forwards;
+    animation-delay: calc(var(--index, 0) * 0.05s);
+    opacity: 0;
+}
+
 /* Loading animation */
 .loading {
     position: relative;
@@ -118,6 +156,34 @@
 .mobile-menu.open {
     transform: translateY(0);
     opacity: 1;
+}
+
+/* Testimonial hover effects */
+.bg-white.p-6.rounded-xl {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.bg-white.p-6.rounded-xl:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+}
+
+/* Features hover effects */
+.features-section .bg-white {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.features-section .bg-white:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
+}
+
+.features-section .w-12 {
+    transition: transform 0.3s ease;
+}
+
+.features-section .bg-white:hover .w-12 {
+    transform: scale(1.1);
 }
 
 /* Keyword suggestions */
@@ -187,4 +253,48 @@
 /* Quick Questions Mode */
 .question-prompt-card {
     border-left: 4px solid #4F46E5;
+}
+
+/* Like button animation */
+.liked i {
+    color: #ef4444;
+    animation: heartbeat 0.5s ease;
+}
+
+@keyframes heartbeat {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.3);
+    }
+}
+
+.floating-heart {
+    position: absolute;
+    font-size: 20px;
+    animation: float-up 1s ease-out forwards;
+    opacity: 1;
+    pointer-events: none;
+}
+
+@keyframes float-up {
+    0% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(-50px);
+        opacity: 0;
+    }
+}
+
+/* Share options */
+.share-options {
+    min-width: 140px;
+}
+
+.share-options button {
+    text-align: left;
+    white-space: nowrap;
 } 
