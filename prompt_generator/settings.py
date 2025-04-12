@@ -148,6 +148,10 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 # Whitenoise settings
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
+# Serve robots.txt and sitemap.xml from the root URL
+ROBOTS_TXT_PATH = os.path.join(BASE_DIR, 'static', 'robots.txt')
+SITEMAP_XML_PATH = os.path.join(BASE_DIR, 'static', 'sitemap.xml')
+
 # Security settings
 if not DEBUG:
     # HTTPS settings

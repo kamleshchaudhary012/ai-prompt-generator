@@ -1,0 +1,13 @@
+User-agent: *
+Allow: /
+
+# Allow Google AdSense crawler
+User-agent: Mediapartners-Google
+Allow: /
+
+# Allow Google crawler
+User-agent: Googlebot
+Allow: /
+
+# Sitemap
+Sitemap: https://promptzy.in/sitemap.xml 

@@ -16,8 +16,32 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from django.conf import settings
+from django.http import FileResponse
+import os
+
+def serve_robots_txt(request):
+    file_path = settings.ROBOTS_TXT_PATH
+    if os.path.exists(file_path):
+        return FileResponse(open(file_path, 'rb'), content_type='text/plain')
+    return FileResponse(open(os.path.join(settings.STATIC_ROOT, 'robots.txt'), 'rb'), content_type='text/plain')
+
+def serve_sitemap_xml(request):
+    file_path = settings.SITEMAP_XML_PATH
+    if os.path.exists(file_path):
+        return FileResponse(open(file_path, 'rb'), content_type='application/xml')
+    return FileResponse(open(os.path.join(settings.STATIC_ROOT, 'sitemap.xml'), 'rb'), content_type='application/xml')
+
+def serve_ads_txt(request):
+    file_path = os.path.join(settings.BASE_DIR, 'static', 'ads.txt')
+    if os.path.exists(file_path):
+        return FileResponse(open(file_path, 'rb'), content_type='text/plain')
+    return FileResponse(open(os.path.join(settings.STATIC_ROOT, 'ads.txt'), 'rb'), content_type='text/plain')
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('generator.urls')),
+    path('robots.txt', serve_robots_txt),
+    path('sitemap.xml', serve_sitemap_xml),
+    path('ads.txt', serve_ads_txt),
 ]
