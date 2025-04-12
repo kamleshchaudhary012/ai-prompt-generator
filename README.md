@@ -35,7 +35,7 @@ A modern web application for generating effective AI prompts with smart topic su
 
 1. Clone the repository:
    ```
-   git clone https://github.com/yourusername/ai-prompt-generator.git
+   git clone https://github.com/kamleshchaudhary012/ai-prompt-generator.git
    ```
 
 2. Navigate to the project directory:
@@ -129,6 +129,6 @@ MIT
 
 ## Contact
 
-Your Name - your.email@example.com
+Kamlesh Chaudhary - kamleshchaudhary012@gmail.com
 
-Project Link: [https://github.com/yourusername/ai-prompt-generator](https://github.com/yourusername/ai-prompt-generator) 
+Project Link: [https://github.com/kamleshchaudhary012/ai-prompt-generator](https://github.com/kamleshchaudhary012/ai-prompt-generator) 
